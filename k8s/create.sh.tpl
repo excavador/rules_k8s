@@ -25,5 +25,10 @@ RUNFILES="${PYTHON_RUNFILES:-$(guess_runfiles)}"
 
 # TODO(mattmoor): Should we create namespaces that do not exist?
 
-PYTHON_RUNFILES=${RUNFILES} %{resolve_script} | \
-  kubectl --cluster="%{cluster}" %{namespace_arg} create -f -
+FILE="_k8s_object_$(date +%s%N).yaml"
+
+PYTHON_RUNFILES=${RUNFILES} %{resolve_script} > "$FILE"
+
+kubectl --cluster="%{cluster}" %{namespace_arg} create -f "FILE"
+
+kubectl --cluster="%{cluster}" %{namespace_arg} rollout status -f "$FILE" -w || true
