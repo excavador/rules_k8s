@@ -23,5 +23,10 @@ function guess_runfiles() {
 
 RUNFILES="${PYTHON_RUNFILES:-$(guess_runfiles)}"
 
-PYTHON_RUNFILES=${RUNFILES} %{resolve_script} | \
-  kubectl --cluster="%{cluster}" %{namespace_arg} apply -f -
+FILE="_k8s_object_$(date +%s%N).yaml"
+
+PYTHON_RUNFILES=${RUNFILES} %{resolve_script} > "$FILE"
+
+kubectl --cluster="%{cluster}" %{namespace_arg} apply -f "$FILE"
+
+kubectl --cluster="%{cluster}" %{namespace_arg} rollout status -f "$FILE" -w || true
