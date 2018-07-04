@@ -123,6 +123,7 @@ def _resolve(ctx, string, output):
   ]
   ctx.action(
     executable = ctx.executable._stamper,
+    use_default_shell_env=True,
     arguments = [
       "--format=%s" % string,
       "--output=%s" % output.path,
