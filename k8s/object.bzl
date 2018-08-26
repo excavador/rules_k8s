@@ -133,6 +133,9 @@ def _resolve(ctx, string, output):
   )
 
 def _common_impl(ctx):
+  if ctx.attr.namespace and ctx.attr.namespace_file:
+    fail("you should choose one: 'namespace' or 'namespace_file'")
+
   files = [ctx.executable.resolver]
 
   cluster_arg = ctx.attr.cluster
@@ -159,11 +162,18 @@ def _common_impl(ctx):
     user_arg = "$(cat %s)" % _runfiles(ctx, user_file)
     files += [user_file]
 
+  namespace_file = None
+
   namespace_arg = ctx.attr.namespace
   namespace_arg = ctx.expand_make_variables("namespace", namespace_arg, {})
   if "{" in ctx.attr.namespace:
     namespace_file = ctx.new_file(ctx.label.name + ".namespace-name")
     _resolve(ctx, ctx.attr.namespace, namespace_file)
+
+  if ctx.file.namespace_file:
+    namespace_file = ctx.file.namespace_file
+
+  if namespace_file:
     namespace_arg = "$(cat %s)" % _runfiles(ctx, namespace_file)
     files += [namespace_file]
 
@@ -201,6 +211,7 @@ def _common_impl(ctx):
 
 _common_attrs = {
     "namespace": attr.string(),
+    "namespace_file": attr.label(allow_single_file=True),
     # We allow cluster to be omitted, and we just
     # don't expose the extra actions.
     "cluster": attr.string(),
@@ -433,6 +444,7 @@ def k8s_object(name, **kwargs):
         context=kwargs.get("context"),
         user=kwargs.get("user"),
         namespace=kwargs.get("namespace"),
+        namespace_file=kwargs.get("namespace_file"),
         visibility=kwargs.get("visibility"),
     )
     _k8s_object_delete(
@@ -443,6 +455,7 @@ def k8s_object(name, **kwargs):
         context=kwargs.get("context"),
         user=kwargs.get("user"),
         namespace=kwargs.get("namespace"),
+        namespace_file=kwargs.get("namespace_file"),
         visibility=kwargs.get("visibility"),
     )
     _k8s_object_replace(
@@ -453,6 +466,7 @@ def k8s_object(name, **kwargs):
         context=kwargs.get("context"),
         user=kwargs.get("user"),
         namespace=kwargs.get("namespace"),
+        namespace_file=kwargs.get("namespace_file"),
         visibility=kwargs.get("visibility"),
     )
     _k8s_object_apply(
@@ -463,6 +477,7 @@ def k8s_object(name, **kwargs):
         context=kwargs.get("context"),
         user=kwargs.get("user"),
         namespace=kwargs.get("namespace"),
+        namespace_file=kwargs.get("namespace_file"),
         visibility=kwargs.get("visibility"),
     )
     if "kind" in kwargs:
@@ -474,5 +489,6 @@ def k8s_object(name, **kwargs):
         context=kwargs.get("context"),
         user=kwargs.get("user"),
         namespace=kwargs.get("namespace"),
+        namespace_file=kwargs.get("namespace_file"),
         visibility=kwargs.get("visibility"),
     )

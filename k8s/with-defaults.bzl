@@ -52,6 +52,9 @@ def _impl(repository_ctx):
   # This is required by Bazel.
   repository_ctx.file("BUILD", "")
 
+  if repository_ctx.attr.namespace and repository_ctx.attr.namespace_file:
+    fail("you should choose one: 'namespace' or 'namespace_file'")
+
   overrides = []
   if repository_ctx.attr.cluster:
     overrides += [_override(repository_ctx.attr.name,
@@ -67,6 +70,10 @@ def _impl(repository_ctx):
   if repository_ctx.attr.namespace:
     overrides += [_override(repository_ctx.attr.name,
                             "namespace", repository_ctx.attr.namespace)]
+
+  if repository_ctx.attr.namespace_file:
+    overrides += [_override(repository_ctx.attr.name,
+                            "namespace_file", repository_ctx.attr.namespace_file.label_string)]
 
   if repository_ctx.attr.kind:
     overrides += [_override(repository_ctx.attr.name,
@@ -96,6 +103,7 @@ k8s_defaults = repository_rule(
         "context": attr.string(mandatory = False),
         "user": attr.string(mandatory = False),
         "namespace": attr.string(mandatory = False),
+        "namespace_file": attr.label(allow_single_file=True, mandatory = False),
         "image_chroot": attr.string(mandatory = False),
     },
     implementation = _impl,
