@@ -23,4 +23,5 @@ function guess_runfiles() {
 
 RUNFILES="${PYTHON_RUNFILES:-$(guess_runfiles)}"
 
+%{before_command} 1>/dev/null
 %{resolve_statements}

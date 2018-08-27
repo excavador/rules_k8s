@@ -91,13 +91,21 @@ def _impl(ctx):
   image_chroot_arg = ctx.expand_make_variables("image_chroot", image_chroot_arg, {})
   if "{" in ctx.attr.image_chroot:
     image_chroot_file = ctx.new_file(ctx.label.name + ".image-chroot-name")
-    _resolve(ctx, ctx.attr.image_chroot, image_chroot_file)
+    resolve(ctx, ctx.attr.image_chroot, image_chroot_file)
     image_chroot_arg = "$(cat %s)" % _runfiles(ctx, image_chroot_file)
     all_inputs += [image_chroot_file]
+
+  if ctx.executable.before_command:
+    before_command = " ".join([_runfiles(ctx, ctx.executable.before_command)] + ctx.attr.before_command_args)
+    all_inputs += [ctx.executable.before_command]
+    all_inputs += list(ctx.attr.before_command.default_runfiles.files)
+  else:
+    before_command = ''
 
   ctx.actions.expand_template(
       template = ctx.file._template,
       substitutions = {
+        "%{before_command}": before_command,
         "%{resolver}": _runfiles(ctx, ctx.executable.resolver),
         "%{yaml}": _runfiles(ctx, ctx.file.template),
         "%{image_chroot}": image_chroot_arg,
@@ -115,13 +123,14 @@ def _impl(ctx):
     ctx.file.template,
   ] + list(ctx.attr.resolver.default_runfiles.files) + all_inputs))
 
-def _resolve(ctx, string, output):
+def resolve(ctx, string, output):
   stamps = [ctx.info_file, ctx.version_file]
   stamp_args = [
     "--stamp-info-file=%s" % sf.path
     for sf in stamps
   ]
   ctx.action(
+    use_default_shell_env=True,
     executable = ctx.executable._stamper,
     arguments = [
       "--format=%s" % string,
@@ -142,7 +151,7 @@ def _common_impl(ctx):
   cluster_arg = ctx.expand_make_variables("cluster", cluster_arg, {})
   if "{" in ctx.attr.cluster:
     cluster_file = ctx.new_file(ctx.label.name + ".cluster-name")
-    _resolve(ctx, ctx.attr.cluster, cluster_file)
+    resolve(ctx, ctx.attr.cluster, cluster_file)
     cluster_arg = "$(cat %s)" % _runfiles(ctx, cluster_file)
     files += [cluster_file]
 
@@ -150,7 +159,7 @@ def _common_impl(ctx):
   context_arg = ctx.expand_make_variables("context", context_arg, {})
   if "{" in ctx.attr.context:
     context_file = ctx.new_file(ctx.label.name + ".context-name")
-    _resolve(ctx, ctx.attr.context, context_file)
+    resolve(ctx, ctx.attr.context, context_file)
     context_arg = "$(cat %s)" % _runfiles(ctx, context_file)
     files += [context_file]
 
@@ -158,7 +167,7 @@ def _common_impl(ctx):
   user_arg = ctx.expand_make_variables("user", user_arg, {})
   if "{" in ctx.attr.user:
     user_file = ctx.new_file(ctx.label.name + ".user-name")
-    _resolve(ctx, ctx.attr.user, user_file)
+    resolve(ctx, ctx.attr.user, user_file)
     user_arg = "$(cat %s)" % _runfiles(ctx, user_file)
     files += [user_file]
 
@@ -168,7 +177,7 @@ def _common_impl(ctx):
   namespace_arg = ctx.expand_make_variables("namespace", namespace_arg, {})
   if "{" in ctx.attr.namespace:
     namespace_file = ctx.new_file(ctx.label.name + ".namespace-name")
-    _resolve(ctx, ctx.attr.namespace, namespace_file)
+    resolve(ctx, ctx.attr.namespace, namespace_file)
 
   if ctx.file.namespace_file:
     namespace_file = ctx.file.namespace_file
@@ -210,6 +219,8 @@ def _common_impl(ctx):
   return struct(runfiles = ctx.runfiles(files = files))
 
 _common_attrs = {
+    "before_command": attr.label(cfg = "host", executable=True),
+    "before_command_args": attr.string_list(),
     "namespace": attr.string(),
     "namespace_file": attr.label(allow_single_file=True),
     # We allow cluster to be omitted, and we just
@@ -445,6 +456,7 @@ def k8s_object(name, **kwargs):
         user=kwargs.get("user"),
         namespace=kwargs.get("namespace"),
         namespace_file=kwargs.get("namespace_file"),
+        before_command = kwargs.get("before_command"),
         visibility=kwargs.get("visibility"),
     )
     _k8s_object_delete(
@@ -456,6 +468,7 @@ def k8s_object(name, **kwargs):
         user=kwargs.get("user"),
         namespace=kwargs.get("namespace"),
         namespace_file=kwargs.get("namespace_file"),
+        before_command = kwargs.get("before_command"),
         visibility=kwargs.get("visibility"),
     )
     _k8s_object_replace(
@@ -467,6 +480,7 @@ def k8s_object(name, **kwargs):
         user=kwargs.get("user"),
         namespace=kwargs.get("namespace"),
         namespace_file=kwargs.get("namespace_file"),
+        before_command = kwargs.get("before_command"),
         visibility=kwargs.get("visibility"),
     )
     _k8s_object_apply(
@@ -478,6 +492,7 @@ def k8s_object(name, **kwargs):
         user=kwargs.get("user"),
         namespace=kwargs.get("namespace"),
         namespace_file=kwargs.get("namespace_file"),
+        before_command = kwargs.get("before_command"),
         visibility=kwargs.get("visibility"),
     )
     if "kind" in kwargs:
@@ -490,5 +505,6 @@ def k8s_object(name, **kwargs):
         user=kwargs.get("user"),
         namespace=kwargs.get("namespace"),
         namespace_file=kwargs.get("namespace_file"),
+        before_command = kwargs.get("before_command"),
         visibility=kwargs.get("visibility"),
     )
