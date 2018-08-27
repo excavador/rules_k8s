@@ -23,4 +23,5 @@ function guess_runfiles() {
 
 RUNFILES="${PYTHON_RUNFILES:-$(guess_runfiles)}"
 
+%{before_command}
 %{resolver} %{resolver_args} --template %{yaml} --image_chroot=%{image_chroot} %{images}
